@@ -1,4 +1,3 @@
-// Part of the program to find the top most common words in a text file
 package main
 
 import (
@@ -41,7 +40,7 @@ func addNode(tree *Node, toAdd *Node) *Node {
 	}
 }
 
-func TreeContains(tree *Node, word []byte) bool {
+func CheckTreeContainsAndUpdate(tree *Node, word []byte) bool {
 	// if parameter word is in the binary tree
 	// then true is returned.
 	// else false is returned
@@ -56,11 +55,11 @@ func TreeContains(tree *Node, word []byte) bool {
 	} else if ByteCompare(word, tree.value.word) == 1 {
 		// The word is less than the one in the root node
 		// and must be sent to the left subtree.
-		return TreeContains(tree.pLeft, word)
+		return CheckTreeContainsAndUpdate(tree.pLeft, word)
 	} else {
 		// The word is more than the one in the root node
 		// and must be sent to the right subtree.
-		return TreeContains(tree.pRight, word)
+		return CheckTreeContainsAndUpdate(tree.pRight, word)
 	}
 }
 
@@ -74,7 +73,8 @@ func FindTwentyMostCommon(tree *Node, freqList *[20]Data) {
 }
 
 func addWordToList(freqList *[20]Data, val Data) {
-	// as list is sorted, the bottom of the list (index19) should be the current min
+
+	// as list is sorted,  the bottom of the list should be the current min
 	if (*freqList)[19].count < val.count {
 		(*freqList)[19] = val
 		sort.Slice(freqList[:], func(i, j int) bool {
@@ -117,6 +117,7 @@ func ByteCompare(lhs []byte, rhs []byte) int {
 			} else {
 				return 1
 			}
+
 		}
 	}
 	return 0

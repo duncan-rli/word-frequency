@@ -1,14 +1,12 @@
-// Program to find the top most common words in a text file
-
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 )
-
-
 
 func usageText() {
 	fmt.Println("Count word-frequency program")
@@ -28,28 +26,57 @@ func main() {
 
 	filename := args[0]
 
-	// read input file
-	buf, err := ioutil.ReadFile(filename)
+	// open input file
+	fi, err := os.Open(filename)
 	if err != nil {
-		fmt.Println("Error readinging file: ", filename)
+		fmt.Println("Error opening file: ", filename)
 		panic(err)
 	}
+	// close fi on exit and check for its returned error
+	defer func() {
+		if err := fi.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
-	var tree * Node
+	var tree *Node
+	// make a read buffer
+	r := bufio.NewReader(fi)
 
-	convertBuffer(&buf)
+	const bufSize = int(1024)
+	var partWord = make([]byte, 0)
 
-	// split on space and join to any previous partwords
-	var words *[][]byte
-	words = splitBuffer(&buf)
+	// make a buffer to keep chunks that are read
+	buf := make([]byte, bufSize)
 
-	// add words in slice array to tree, increment count if already exists
-	for _, word := range *words {
-		if TreeContains(tree, word) == false {
-			var data Data
-			data.word = append(data.word, word...)
-			data.count = 1
-			tree = Add(tree, data)
+	// read chunks from file
+	for {
+		// read a chunk
+		n, err := r.Read(buf)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if n == 0 {
+			break
+		}
+
+		// remove non ascii chars and convert to lower case,
+		// changes passed back in same buffer
+		convertBuffer(&buf, n)
+
+		// split on space and join to any previous partwords
+		var words *[][]byte
+		partWord, words = splitBuffer(partWord, &buf)
+
+		// add words in slice array to tree
+		for _, word := range *words {
+			if CheckTreeContainsAndUpdate(tree, word) == false {
+				// word not in tree so add it
+				var data Data
+				data.word = append(data.word, word...)
+				data.count = 1
+				tree = Add(tree, data)
+			}
 		}
 	}
 
@@ -62,16 +89,27 @@ func main() {
 	}
 }
 
-
-// split buffer into words
-func splitBuffer(buf *[]byte) *[][]byte {
-	wordsl := make([][]byte, 0)
+// split buffer into words and incorporate any part word from the previous buffer
+func splitBuffer(part []byte, buf *[]byte) ([]byte, *[][]byte) {
 	if buf == nil {
-		return &wordsl
+		return nil, nil
 	}
+	l := len(*buf)
 	bptr := buf
 
+	wordsl := make([][]byte, 0)
+
+	// check for part word from previous buffer split, join if required
+	if len(part) > 0 {
+		l = l + len(part)
+		// append buffer to the word part from last time
+		part = append(part, *buf...)
+		bptr = &part
+	}
+
 	start := 0
+	var remainingPart []byte
+
 	for i, c := range *bptr {
 
 		if c == ' ' {
@@ -81,17 +119,21 @@ func splitBuffer(buf *[]byte) *[][]byte {
 				continue
 			}
 			// found word break
-			sl := (*bptr)[start: i]
-			start = i+1
+			sl := (*bptr)[start:i]
+			start = i + 1
 			// append word slice to slice of words
 			wordsl = append(wordsl, sl)
 		}
+		if start < (l) && i == l-1 {
+			remainingPart = make([]byte, i+1-start)
+			copy(remainingPart, (*bptr)[start:i+1])
+		}
 	}
-	return &wordsl
+	return remainingPart, &wordsl
 }
 
 // convert buffer chars, clear any unused buffer
-func convertBuffer(buf *[]byte) {
+func convertBuffer(buf *[]byte, bytesRead int) {
 	if buf == nil {
 		return
 	}
@@ -101,9 +143,12 @@ func convertBuffer(buf *[]byte) {
 	}
 
 	for i, c := range *buf {
-		(*buf)[i] = convertChar(c)
+		if i < bytesRead {
+			(*buf)[i] = convertChar(c)
+		} else {
+			(*buf)[i] = 32 // ' '
+		}
 	}
-
 }
 
 // remove non ascii chars and punctuation, convert upper case to lower
