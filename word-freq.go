@@ -39,7 +39,6 @@ func main() {
 		}
 	}()
 
-	var tree *Node
 	// make a read buffer
 	r := bufio.NewReader(fi)
 
@@ -70,19 +69,13 @@ func main() {
 
 		// add words in slice array to tree
 		for _, word := range *words {
-			if CheckTreeContainsAndUpdate(tree, word) == false {
-				// word not in tree so add it
-				var data Data
-				data.word = append(data.word, word...)
-				data.count = 1
-				tree = Add(tree, data)
-			}
+			CheckTreeContainsAndUpdate(word)
 		}
 	}
 
 	// display 20 most common
 	freqList := [20]Data{}
-	FindTwentyMostCommon(tree, &freqList)
+	FindTwentyMostCommon(&freqList)
 
 	for _, v := range freqList {
 		fmt.Println(v.count, string(v.word))
