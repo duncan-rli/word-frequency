@@ -164,5 +164,4 @@ func convertChar(c byte) byte {
 		// all other chars to space
 		return ' '
 	}
-	return 0
 }

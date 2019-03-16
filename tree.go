@@ -10,11 +10,11 @@ type Data struct {
 }
 
 type Node struct {
-	value  Data
-	pLeft  *Node
-	pRight *Node
+	value     Data
+	pLeft     *Node
+	pRight    *Node
 	alphaTree *[26]*Node
-	root bool
+	root      bool
 }
 
 func Add(tree *Node, val Data) *Node {
@@ -28,13 +28,13 @@ func Add(tree *Node, val Data) *Node {
 		tree = new(Node)
 		tree.root = true
 		tree.alphaTree = new([26]*Node)
-		tempAlphaTreeNodePtr := new(Node)
 		for i := 0; i < 26; i++ {
-			tree.alphaTree[val.word[0]-'a'] = tempAlphaTreeNodePtr
+			tree.alphaTree[i] = new(Node)
 		}
 	}
 	if tree.root {
-		return addNode(tree.alphaTree[val.word[0] - 'a'], tempNodePtr)
+		addNode(tree.alphaTree[val.word[0]-'a'], tempNodePtr)
+		return tree
 	}
 	return addNode(tree, tempNodePtr)
 }
@@ -47,7 +47,7 @@ func addNode(tree *Node, toAdd *Node) *Node {
 		if comp == 1 {
 			tree.pLeft = addNode(tree.pLeft, toAdd)
 		} else if comp == 0 {
-			tree.value.count++  // shouldnt get here
+			tree.value.count++ // shouldnt get here
 		} else {
 			tree.pRight = addNode(tree.pRight, toAdd)
 		}
@@ -64,8 +64,7 @@ func CheckTreeContainsAndUpdate(tree *Node, word []byte) bool {
 		// Tree is empty
 		return false
 	} else if tree.root == true {
-		CheckTreeContainsAndUpdate(tree.alphaTree[word[0] - 'a'], word)
-		return true
+		return CheckTreeContainsAndUpdate(tree.alphaTree[word[0]-'a'], word)
 	} else if ByteCompare(word, tree.value.word) == 0 {
 		//The word matches to one in the root node.
 		tree.value.count++
@@ -83,8 +82,15 @@ func CheckTreeContainsAndUpdate(tree *Node, word []byte) bool {
 
 func FindTwentyMostCommon(tree *Node, freqList *[20]Data) {
 	if tree != nil {
-		FindTwentyMostCommon(tree.pLeft, freqList)
-		FindTwentyMostCommon(tree.pRight, freqList)
+		if tree.root {
+			for i := 0; i < 26; i++ {
+				FindTwentyMostCommon(tree.alphaTree[i].pLeft, freqList)
+				FindTwentyMostCommon(tree.alphaTree[i].pRight, freqList)
+			}
+		} else {
+			FindTwentyMostCommon(tree.pLeft, freqList)
+			FindTwentyMostCommon(tree.pRight, freqList)
+		}
 
 		addWordToList(freqList, tree.value)
 	}
