@@ -13,6 +13,8 @@ type Node struct {
 	value  Data
 	pLeft  *Node
 	pRight *Node
+	alphaTree *[26]*Node
+	root bool
 }
 
 func Add(tree *Node, val Data) *Node {
@@ -21,6 +23,19 @@ func Add(tree *Node, val Data) *Node {
 	tempNodePtr.value = val
 	tempNodePtr.pLeft = nil
 	tempNodePtr.pRight = nil
+	tempNodePtr.root = false
+	if tree == nil {
+		tree = new(Node)
+		tree.root = true
+		tree.alphaTree = new([26]*Node)
+		tempAlphaTreeNodePtr := new(Node)
+		for i := 0; i < 26; i++ {
+			tree.alphaTree[val.word[0]-'a'] = tempAlphaTreeNodePtr
+		}
+	}
+	if tree.root {
+		return addNode(tree.alphaTree[val.word[0] - 'a'], tempNodePtr)
+	}
 	return addNode(tree, tempNodePtr)
 }
 
@@ -32,7 +47,7 @@ func addNode(tree *Node, toAdd *Node) *Node {
 		if comp == 1 {
 			tree.pLeft = addNode(tree.pLeft, toAdd)
 		} else if comp == 0 {
-			tree.value.count++
+			tree.value.count++  // shouldnt get here
 		} else {
 			tree.pRight = addNode(tree.pRight, toAdd)
 		}
@@ -48,6 +63,9 @@ func CheckTreeContainsAndUpdate(tree *Node, word []byte) bool {
 	if tree == nil {
 		// Tree is empty
 		return false
+	} else if tree.root == true {
+		CheckTreeContainsAndUpdate(tree.alphaTree[word[0] - 'a'], word)
+		return true
 	} else if ByteCompare(word, tree.value.word) == 0 {
 		//The word matches to one in the root node.
 		tree.value.count++
